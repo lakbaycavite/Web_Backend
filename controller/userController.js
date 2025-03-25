@@ -293,7 +293,7 @@ const resetPassword = async (req, res) => {
 
     try {
         // Find reset request by email and token
-        const resetRequest = await ResetPassword.findOne({ email, token });
+        const resetRequest = await ResetPassword.findOne({ token });
 
         if (!resetRequest) {
             return res.status(400).json({ error: 'Invalid or expired reset token' });
@@ -321,6 +321,25 @@ const resetPassword = async (req, res) => {
     } catch (error) {
         console.error('Password reset error:', error);
         return res.status(500).json({ error: 'An error occurred' });
+    }
+};
+
+const verifyResetToken = async (req, res) => {
+    const { email, token } = req.body;
+
+    try {
+        // Find reset request by email and token
+        const resetRequest = await ResetPassword.findOne({ email, token });
+
+        if (!resetRequest) {
+            return res.status(400).json({ error: 'Invalid or expired reset token', valid: false });
+        }
+
+        // Token is valid
+        return res.status(200).json({ message: 'Token is valid', valid: true });
+    } catch (error) {
+        console.error('Token verification error:', error);
+        return res.status(500).json({ error: 'An error occurred', valid: false });
     }
 };
 
@@ -511,5 +530,6 @@ module.exports = {
     initiateUserRegistration,
     verifyAndCreateUser,
     requestPasswordReset,
-    resetPassword
+    resetPassword,
+    verifyResetToken
 }

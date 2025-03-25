@@ -13,7 +13,8 @@ const {
     initiateUserRegistration,
     verifyAndCreateUser,
     requestPasswordReset,
-    resetPassword
+    resetPassword,
+    verifyResetToken
 } = require('../controller/userController')
 const { upload } = require('../middleware/fileUpload')
 
@@ -57,6 +58,8 @@ router.post('/verify', verifyAndCreateUser);
 router.post('/request-reset', requestPasswordReset)
 
 router.post('/reset', resetPassword)
+
+router.post('/verify-code', verifyResetToken);
 
 
 
