@@ -11,7 +11,9 @@ const {
     loginUser,
     toggleUserStatus,
     initiateUserRegistration,
-    verifyAndCreateUser
+    verifyAndCreateUser,
+    requestPasswordReset,
+    resetPassword
 } = require('../controller/userController')
 const { upload } = require('../middleware/fileUpload')
 
@@ -50,6 +52,11 @@ router.post('/register', initiateUserRegistration);
 
 // Route to verify code and complete registration
 router.post('/verify', verifyAndCreateUser);
+
+// Route to initiate password reset
+router.post('/request-reset', requestPasswordReset)
+
+router.post('/reset', resetPassword)
 
 
 

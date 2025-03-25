@@ -7,7 +7,9 @@ const crypto = require('crypto')
 const jwt = require('jsonwebtoken')
 const Post = require('../models/postModel')
 const { sendVerificationEmail } = require('../configs/emailConfig');
+const { sendPasswordResetEmail } = require('../configs/emailConfig');
 const Verification = require('../models/verificationModel');
+const ResetPassword = require('../models/resetPasswordModel');
 
 require('dotenv').config()
 
@@ -233,6 +235,98 @@ const verifyAndCreateUser = async (req, res) => {
 };
 
 
+// request password reset
+const generateResetToken = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Request password reset (send email with reset token)
+const requestPasswordReset = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        // Find user by email
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            // For security reasons, don't reveal that the email doesn't exist
+            return res.status(200).json({
+                message: 'If your email is registered, you will receive a password reset code'
+            });
+        }
+
+        // Generate reset token
+        const resetToken = generateResetToken();
+
+        // Save reset token to database
+        const existingRequest = await ResetPassword.findOne({ email });
+        if (existingRequest) {
+            existingRequest.token = resetToken;
+            await existingRequest.save();
+        } else {
+            await ResetPassword.create({
+                userId: user._id,
+                email,
+                token: resetToken
+            });
+        }
+
+        // Send password reset email
+        const emailSent = await sendPasswordResetEmail(email, resetToken);
+
+        if (emailSent) {
+            return res.status(200).json({
+                message: 'If your email is registered, you will receive a password reset code'
+            });
+        } else {
+            return res.status(500).json({ error: 'Failed to send password reset email' });
+        }
+    } catch (error) {
+        console.error('Password reset request error:', error);
+        return res.status(500).json({ error: 'An error occurred' });
+    }
+};
+
+// Verify reset token and set new password
+const resetPassword = async (req, res) => {
+    const { email, token, newPassword } = req.body;
+
+    try {
+        // Find reset request by email and token
+        const resetRequest = await ResetPassword.findOne({ email, token });
+
+        if (!resetRequest) {
+            return res.status(400).json({ error: 'Invalid or expired reset token' });
+        }
+
+        // Find the user
+        const user = await User.findById(resetRequest.userId);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Hash the new password
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+        // Update user's password
+        user.password = hashedPassword;
+        await user.save();
+
+        // Delete the reset request
+        await ResetPassword.deleteOne({ _id: resetRequest._id });
+
+        return res.status(200).json({ message: 'Password has been reset successfully' });
+    } catch (error) {
+        console.error('Password reset error:', error);
+        return res.status(500).json({ error: 'An error occurred' });
+    }
+};
+
+
+
+
 
 
 
@@ -415,5 +509,7 @@ module.exports = {
     loginUser,
     toggleUserStatus,
     initiateUserRegistration,
-    verifyAndCreateUser
+    verifyAndCreateUser,
+    requestPasswordReset,
+    resetPassword
 }
