@@ -24,10 +24,8 @@ const postSchema = new Schema({
         ref: "User",
         required: false,
     },
-    imageURL: {
-        type: String,
-        required: false,
-    },
+    likedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    attachments: [{ type: String }],
     comments: [commentSchema],
     is_hidden: {
         type: Boolean,

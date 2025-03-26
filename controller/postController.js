@@ -63,57 +63,57 @@ const getPost = async (req, res) => {
 }
 
 // create new post
-const createPost = async (req, res) => {
-    const { title, content, imageUrl, comments } = req.body
-    const userId = req.user._id
-    // const filePath = req.file ? req.file.filename : null
+// const createPost = async (req, res) => {
+//     const { title, content, imageUrl, comments } = req.body
+//     const userId = req.user._id
+//     // const filePath = req.file ? req.file.filename : null
 
-    let imageUrl2;
-    if (req.file) {
-        try {
-            const result = await new Promise((resolve, reject) => {
-                const stream = cloudinary.uploader.upload_stream(
-                    { folder: 'lakbaycavite/posts' },
-                    (error, result) => {
-                        if (error) {
-                            console.error("Cloudinary upload error:", error);
-                            reject(error);
-                        } else {
-                            resolve(result);
-                        }
-                    }
-                );
+//     let imageUrl2;
+//     if (req.file) {
+//         try {
+//             const result = await new Promise((resolve, reject) => {
+//                 const stream = cloudinary.uploader.upload_stream(
+//                     { folder: 'lakbaycavite/posts' },
+//                     (error, result) => {
+//                         if (error) {
+//                             console.error("Cloudinary upload error:", error);
+//                             reject(error);
+//                         } else {
+//                             resolve(result);
+//                         }
+//                     }
+//                 );
 
-                // Make sure the buffer exists before piping
-                if (!req.file.buffer) {
-                    throw new Error('File buffer is not available');
-                }
+//                 // Make sure the buffer exists before piping
+//                 if (!req.file.buffer) {
+//                     throw new Error('File buffer is not available');
+//                 }
 
-                streamifier.createReadStream(req.file.buffer).pipe(stream);
-            });
+//                 streamifier.createReadStream(req.file.buffer).pipe(stream);
+//             });
 
-            imageUrl2 = result.secure_url;
-        } catch (error) {
-            console.error('Error uploading to Cloudinary:', error);
-            // Handle the error appropriately, e.g.:
-            // return res.status(500).json({ error: 'Failed to upload image' });
-        }
-    }
+//             imageUrl2 = result.secure_url;
+//         } catch (error) {
+//             console.error('Error uploading to Cloudinary:', error);
+//             // Handle the error appropriately, e.g.:
+//             // return res.status(500).json({ error: 'Failed to upload image' });
+//         }
+//     }
 
-    try {
-        const post = await Post.create({
-            title,
-            content,
-            user: userId,
-            imageURL: imageUrl2,
-            comments,
-            is_hidden: false
-        })
-        res.status(200).json(post)
-    } catch (error) {
-        res.status(400).json({ error: error.message })
-    }
-}
+//     try {
+//         const post = await Post.create({
+//             title,
+//             content,
+//             user: userId,
+//             imageURL: imageUrl2,
+//             comments,
+//             is_hidden: false
+//         })
+//         res.status(200).json(post)
+//     } catch (error) {
+//         res.status(400).json({ error: error.message })
+//     }
+// }
 
 // add comments
 const addComment = async (req, res) => {
@@ -239,27 +239,27 @@ const deletePost = async (req, res) => {
 
 // update a post
 
-const updatePost = async (req, res) => {
-    const { id } = req.params
-    const { title, content, eventType, attachments } = req.body
+// const updatePost = async (req, res) => {
+//     const { id } = req.params
+//     const { title, content, eventType, attachments } = req.body
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-        return res.status(404).json({ error: 'No such post' })
-    }
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//         return res.status(404).json({ error: 'No such post' })
+//     }
 
-    const post = await Post.findOneAndUpdate({ _id: id }, {
-        title,
-        content,
-        eventType,
-        attachments
-    })
+//     const post = await Post.findOneAndUpdate({ _id: id }, {
+//         title,
+//         content,
+//         eventType,
+//         attachments
+//     })
 
-    if (!post) {
-        return res.status(404).json({ error: 'No such post' })
-    }
+//     if (!post) {
+//         return res.status(404).json({ error: 'No such post' })
+//     }
 
-    res.status(200).json(post)
-}
+//     res.status(200).json(post)
+// }
 
 const togglePostVisibility = async (req, res) => {
     const { id } = req.params
@@ -284,11 +284,11 @@ const togglePostVisibility = async (req, res) => {
 }
 
 module.exports = {
-    createPost,
+    // createPost,
     getPosts,
     getPost,
     deletePost,
-    updatePost,
+    // updatePost,
     togglePostVisibility,
     addComment,
     deleteComment,

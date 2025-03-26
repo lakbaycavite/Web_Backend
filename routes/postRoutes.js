@@ -26,10 +26,10 @@ router.get('/', getPosts)
 router.get('/:id', getPost)
 
 // Create a post
-router.post('/', upload.single('imageURL'), createPost)
+// router.post('/', upload.single('imageURL'), createPost)
 
 // Update a post
-router.put('/update/:id', updatePost)
+// router.put('/update/:id', updatePost)
 
 // Delete a post
 router.delete('/delete/:id', deletePost)
