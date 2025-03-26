@@ -30,6 +30,9 @@ const getHotlines = async (req, res) => {
     const searchFilter = {
         $or: [
             { name: { $regex: search, $options: 'i' } },
+            { number: { $regex: search, $options: 'i' } },
+            { location: { $regex: search, $options: 'i' } },
+            { category: { $regex: search, $options: 'i' } }
         ]
     };
 
