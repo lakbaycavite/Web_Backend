@@ -30,7 +30,7 @@ router.get('/', getUsers)
 router.get('/:id', getUser)
 
 // create a user
-// router.post('/', createUser)
+router.post('/', createUser)
 
 // update a user
 router.put('/update/:id', updateUser)

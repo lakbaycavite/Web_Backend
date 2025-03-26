@@ -70,58 +70,53 @@ const getUser = async (req, res) => {
     res.status(200).json({ user, postsCount, commentCount })
 }
 
-// const createUser = async (req, res) => {
-//     const { email, username, password, firstName, lastName, age, gender, image, role } = req.body
+const createUser = async (req, res) => {
+    const { email, username, password, firstName, lastName, age, gender, image, role, isActive, isVerified } = req.body
 
-//     try {
+    try {
 
-//         const existingUserByEmail = await User.findOne({ email: email });
-//         const existingUserByUsername = await User.findOne({ username: username });
+        const existingUserByEmail = await User.findOne({ email: email });
+        const existingUserByUsername = await User.findOne({ username: username });
 
-//         // Create an array to store error messages
-//         let errorMessages = []
+        // Create an array to store error messages
+        let errorMessages = []
 
-//         if (existingUserByEmail) {
-//             errorMessages.push('Email is already taken')
-//         }
+        if (existingUserByEmail) {
+            errorMessages.push('Email is already taken')
+        }
 
-//         if (existingUserByUsername) {
-//             errorMessages.push('Username is already taken')
-//         }
+        if (existingUserByUsername) {
+            errorMessages.push('Username is already taken')
+        }
 
-//         if (errorMessages.length > 0) {
-//             return res.status(400).json({ error: errorMessages.join(' and '), errorMessages })
-//         }
+        if (errorMessages.length > 0) {
+            return res.status(400).json({ error: errorMessages.join(' and '), errorMessages })
+        }
 
-//         const defaultMaleImageUrl = process.env.DEFAULT_MALE_IMAGE
-//         const defaultFemaleImageUrl = process.env.DEFAULT_FEMALE_IMAGE
-//         const defaultAdminImageUrl = process.env.DEFAULT_ADMIN_IMAGE
+        const formattedGender = gender ? gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase() : "";
 
-//         const formattedGender = gender ? gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase() : "";
+        const salt = await bcrypt.genSalt(10)
+        const hash = await bcrypt.hash(password, salt)
 
-//         const profileImage = image || (gender === "female" ? defaultFemaleImageUrl : defaultMaleImageUrl);
-//         const isAdmin = role === 'admin' ? defaultAdminImageUrl : profileImage
+        const user = await User.create({
+            email,
+            username,
+            password: hash,
+            firstName: firstName ?? "",
+            lastName: lastName ?? "",
+            age: age ?? "",
+            gender: formattedGender,
+            image,
+            role,
+            isActive,
+            isVerified
+        })
 
-//         const salt = await bcrypt.genSalt(10)
-//         const hash = await bcrypt.hash(password, salt)
-
-//         const user = await User.create({
-//             email,
-//             username,
-//             password: hash,
-//             firstName: firstName ?? "",
-//             lastName: lastName ?? "",
-//             age: age ?? "",
-//             gender: formattedGender,
-//             image: isAdmin,
-//             role
-//         })
-
-//         res.status(200).json(user)
-//     } catch (error) {
-//         res.status(400).json({ error: error.message })
-//     }
-// }
+        res.status(200).json(user)
+    } catch (error) {
+        res.status(400).json({ error: error.message })
+    }
+}
 
 // SendEmailVerifiy
 
@@ -556,7 +551,7 @@ const toggleUserStatus = async (req, res) => {
 module.exports = {
     getUser,
     getUsers,
-    // createUser,
+    createUser,
     deleteUser,
     updateUser,
     uploadImage,
