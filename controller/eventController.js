@@ -1,5 +1,7 @@
 const Event = require('../models/eventModel')
 const mongoose = require('mongoose')
+const cloudinary = require('../configs/cloudinaryConfig')
+const streamifier = require('streamifier')
 
 // get all event
 const getEvents = async (req, res) => {
@@ -29,12 +31,43 @@ const getEvent = async (req, res) => {
 const createEvent = async (req, res) => {
     try {
         const { start, end, title, description, color, place, barangay } = req.body;
-        const filePath = req.file ? req.file.filename : null
+        // const filePath = req.file ? req.file.filename : null
 
         if (!start || !end || !title || !description) {
             return res.status(400).json({ error: "All fields (start, end, title, description) are required." });
         }
 
+        let eventImage;
+        if (req.file) {
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        { folder: 'lakbaycavite/events' },
+                        (error, result) => {
+                            if (error) {
+                                console.error("Cloudinary upload error:", error);
+                                reject(error);
+                            } else {
+                                resolve(result);
+                            }
+                        }
+                    );
+
+                    // Make sure the buffer exists before piping
+                    if (!req.file.buffer) {
+                        throw new Error('File buffer is not available');
+                    }
+
+                    streamifier.createReadStream(req.file.buffer).pipe(stream);
+                });
+
+                eventImage = result.secure_url;
+            } catch (error) {
+                console.error('Error uploading to Cloudinary:', error);
+                // Handle the error appropriately, e.g.:
+                // return res.status(500).json({ error: 'Failed to upload image' });
+            }
+        }
 
         const startDate = new Date(start);
         const endDate = new Date(end);
@@ -48,7 +81,7 @@ const createEvent = async (req, res) => {
             return res.status(400).json({ error: "End time must be after the start time." });
         }
 
-        const event = await Event.create({ start, end, title, description, image: filePath, place, barangay, color });
+        const event = await Event.create({ start, end, title, description, image: eventImage, place, barangay, color });
 
         return res.status(201).json(event);
     } catch (error) {
@@ -128,12 +161,44 @@ const uploadImage = async (req, res) => {
             return res.status(404).json({ message: 'Event not found' });
         }
 
-        event.image = req.file.filename;
+        let imageUpload;
+        if (req.file) {
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        { folder: 'lakbaycavite/posts' },
+                        (error, result) => {
+                            if (error) {
+                                console.error("Cloudinary upload error:", error);
+                                reject(error);
+                            } else {
+                                resolve(result);
+                            }
+                        }
+                    );
+
+                    // Make sure the buffer exists before piping
+                    if (!req.file.buffer) {
+                        throw new Error('File buffer is not available');
+                    }
+
+                    streamifier.createReadStream(req.file.buffer).pipe(stream);
+                });
+
+                imageUpload = result.secure_url;
+            } catch (error) {
+                console.error('Error uploading to Cloudinary:', error);
+                // Handle the error appropriately, e.g.:
+                // return res.status(500).json({ error: 'Failed to upload image' });
+            }
+        }
+
+        event.image = imageUpload;
         await event.save();
 
         return res.status(200).json({
             message: 'Image uploaded successfully',
-            image: req.file.filename
+            image: imageUpload
         })
     } catch (error) {
         return res.status(500).json({ error: "Internal server error" });

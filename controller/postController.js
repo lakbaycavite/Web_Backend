@@ -2,6 +2,8 @@ const { red } = require('colors')
 const Post = require('../models/postModel')
 const User = require('../models/userModel')
 const mongoose = require('mongoose')
+const cloudinary = require('../configs/cloudinaryConfig')
+const streamifier = require('streamifier')
 
 // get all post
 // const getPosts = async (req, res) => {
@@ -34,7 +36,7 @@ const getPosts = async (req, res) => {
         }
 
         const total = await Post.countDocuments(searchFilter)
-        const posts = await Post.find(searchFilter).populate("user", "username firstName lastName age gender image").skip(skip).limit(limit).sort({ createdAt: 1 })
+        const posts = await Post.find(searchFilter).populate("user", "username firstName lastName age gender image").skip(skip).limit(limit).sort({ createdAt: -1 })
 
         res.status(200).json({ posts, total, page, pages: Math.ceil(total / limit) })
     } catch (error) {
@@ -64,15 +66,46 @@ const getPost = async (req, res) => {
 const createPost = async (req, res) => {
     const { title, content, imageUrl, comments } = req.body
     const userId = req.user._id
-    const filePath = req.file ? req.file.filename : null
+    // const filePath = req.file ? req.file.filename : null
 
+    let imageUrl2;
+    if (req.file) {
+        try {
+            const result = await new Promise((resolve, reject) => {
+                const stream = cloudinary.uploader.upload_stream(
+                    { folder: 'lakbaycavite/posts' },
+                    (error, result) => {
+                        if (error) {
+                            console.error("Cloudinary upload error:", error);
+                            reject(error);
+                        } else {
+                            resolve(result);
+                        }
+                    }
+                );
+
+                // Make sure the buffer exists before piping
+                if (!req.file.buffer) {
+                    throw new Error('File buffer is not available');
+                }
+
+                streamifier.createReadStream(req.file.buffer).pipe(stream);
+            });
+
+            imageUrl2 = result.secure_url;
+        } catch (error) {
+            console.error('Error uploading to Cloudinary:', error);
+            // Handle the error appropriately, e.g.:
+            // return res.status(500).json({ error: 'Failed to upload image' });
+        }
+    }
 
     try {
         const post = await Post.create({
             title,
             content,
             user: userId,
-            imageURL: filePath,
+            imageURL: imageUrl2,
             comments,
             is_hidden: false
         })

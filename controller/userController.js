@@ -10,6 +10,8 @@ const { sendVerificationEmail } = require('../configs/emailConfig');
 const { sendPasswordResetEmail } = require('../configs/emailConfig');
 const Verification = require('../models/verificationModel');
 const ResetPassword = require('../models/resetPasswordModel');
+const cloudinary = require('../configs/cloudinaryConfig')
+const streamifier = require('streamifier')
 
 require('dotenv').config()
 
@@ -440,19 +442,53 @@ const updateUser = async (req, res) => {
 const uploadImage = async (req, res) => {
     try {
         const userId = req.body.userId
-        const imagePath = req.file.filename
+        // const imagePath = req.file.filename
 
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        user.image = imagePath;
+
+        let imageUpload;
+        if (req.file) {
+            try {
+                const result = await new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        { folder: 'lakbaycavite/posts' },
+                        (error, result) => {
+                            if (error) {
+                                console.error("Cloudinary upload error:", error);
+                                reject(error);
+                            } else {
+                                resolve(result);
+                            }
+                        }
+                    );
+
+                    // Make sure the buffer exists before piping
+                    if (!req.file.buffer) {
+                        throw new Error('File buffer is not available');
+                    }
+
+                    streamifier.createReadStream(req.file.buffer).pipe(stream);
+                });
+
+                imageUpload = result.secure_url;
+            } catch (error) {
+                console.error('Error uploading to Cloudinary:', error);
+                // Handle the error appropriately, e.g.:
+                // return res.status(500).json({ error: 'Failed to upload image' });
+            }
+        }
+
+
+        user.image = imageUpload;
         await user.save();
 
         res.status(200).json({
             message: 'Image uploaded successfully',
-            image: imagePath
+            image: imageUpload
         });
     } catch (error) {
         res.status(500).json({
