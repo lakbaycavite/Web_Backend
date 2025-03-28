@@ -12,6 +12,7 @@ const {
     toggleUserStatus,
     initiateUserRegistration,
     verifyAndCreateUser,
+    resendVerificationCode,
     requestPasswordReset,
     resetPassword,
     verifyResetToken
@@ -53,6 +54,9 @@ router.post('/register', initiateUserRegistration);
 
 // Route to verify code and complete registration
 router.post('/verify', verifyAndCreateUser);
+
+
+router.post('/resend-verification', resendVerificationCode);
 
 // Route to initiate password reset
 router.post('/request-reset', requestPasswordReset)

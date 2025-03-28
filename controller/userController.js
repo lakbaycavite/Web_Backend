@@ -199,6 +199,18 @@ const verifyAndCreateUser = async (req, res) => {
         // const profileImage = image || (gender === "female" ? defaultFemaleImageUrl : defaultMaleImageUrl);
         // const isAdmin = role === 'admin' ? defaultAdminImageUrl : profileImage;
 
+        const createdAt = new Date(verification.createdAt);
+        const now = new Date();
+        const diffInMinutes = Math.round((now - createdAt) / (1000 * 60));
+
+        if (diffInMinutes > 30) {
+            await Verification.deleteOne({ email, code: verificationCode });
+            return res.status(400).json({
+                error: 'Verification code has expired. Please request a new one.',
+                expired: true
+            });
+        }
+
         const formattedGender = gender ? gender.charAt(0).toUpperCase() + gender.slice(1).toLowerCase() : "";
 
         const salt = await bcrypt.genSalt(10);
@@ -231,6 +243,45 @@ const verifyAndCreateUser = async (req, res) => {
     }
 };
 
+const resendVerificationCode = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        if (!email) {
+            return res.status(400).json({ error: 'Email is required' });
+        }
+
+        // Check if there's an existing verification record
+        const existingVerification = await Verification.findOne({ email });
+
+        if (!existingVerification) {
+            return res.status(404).json({ error: 'No pending registration found for this email' });
+        }
+
+        // Generate new verification code
+        const verificationCode = generateVerificationCode();
+
+        // Update the verification record
+        existingVerification.code = verificationCode;
+        existingVerification.createdAt = new Date(); // Reset creation time
+        await existingVerification.save();
+
+        // Send verification email
+        const emailSent = await sendVerificationEmail(email, verificationCode);
+
+        if (emailSent) {
+            res.status(200).json({
+                message: 'Verification code resent to your email address',
+                email
+            });
+        } else {
+            res.status(500).json({ error: 'Failed to send verification email' });
+        }
+    } catch (error) {
+        console.error('Resend verification error:', error);
+        res.status(500).json({ error: 'An error occurred while resending verification code' });
+    }
+};
 
 // request password reset
 const generateResetToken = () => {
@@ -560,6 +611,7 @@ module.exports = {
     toggleUserStatus,
     initiateUserRegistration,
     verifyAndCreateUser,
+    resendVerificationCode,
     requestPasswordReset,
     resetPassword,
     verifyResetToken
