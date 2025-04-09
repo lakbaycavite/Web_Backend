@@ -35,7 +35,13 @@ const getPosts = async (req, res) => {
         }
 
         const total = await Post.countDocuments(searchFilter)
-        const posts = await Post.find(searchFilter).populate("user", "username firstName lastName age gender image").skip(skip).limit(limit).sort({ createdAt: -1 })
+        const posts = await Post.find(searchFilter)
+            .populate("user", "username firstName lastName age gender image")
+            .populate("likedBy", "username firstName lastName image")
+            .skip(skip).limit(limit).sort({ createdAt: -1 })
+
+        // console.log('LikedBy users:', posts.likedBy.map(user => user.username));
+
 
         res.status(200).json({ posts, total, page, pages: Math.ceil(total / limit) })
     } catch (error) {
@@ -52,7 +58,7 @@ const getPost = async (req, res) => {
     }
 
 
-    const post = await Post.findById(id).populate("user", "username firstName lastName age gender image")
+    const post = await Post.findById(id).populate("user", "username firstName lastName age gender image").populate("likedBy", "username firstName lastName image")
 
     if (!post) {
         return res.status(404).json({ error: 'No such post' })
