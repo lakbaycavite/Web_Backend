@@ -421,7 +421,7 @@ const loginUser = async (req, res) => {
         }
 
         if (!user.isActive) {
-            return res.status(403).json({ error: 'Your account has been deactivated.' })
+            return res.status(403).json({ error: 'Your account has been deactivated. Please contact cavitelakbay@gmail.com for activation.' })
         }
 
         const match = await bcrypt.compare(password, user.password)
