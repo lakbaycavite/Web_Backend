@@ -62,8 +62,8 @@ const dashboardDetails = async (req, res) => {
 
             Event.countDocuments(),
             Event.countDocuments({ isActive: false }),
-            Event.countDocuments({ start: { $gt: now } }),
-            Event.find({ start: { $gt: now } }).sort({ start: 1 }).limit(5),
+            Event.countDocuments({ start: { $gt: now }, isActive: { $ne: false } }),
+            Event.find({ start: { $gt: now }, isActive: { $ne: false } }).sort({ start: 1 }).limit(5),
             Event.countDocuments({ start: { $lt: now }, end: { $gt: now } }),
 
             Hotline.countDocuments(),
