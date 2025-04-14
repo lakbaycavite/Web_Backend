@@ -410,24 +410,28 @@ const loginUser = async (req, res) => {
     const { identifier, password } = req.body
 
     try {
-
         const isEmail = identifier.includes("@");
         const query = isEmail ? { email: identifier } : { username: identifier }
 
         const user = await User.findOne(query)
 
         if (!user) {
-            return res.status(404).json({ error: 'Please provide a valid credentials' })
+            return res.status(404).json({ error: 'Please provide valid credentials' })
         }
 
         if (!user.isActive) {
-            return res.status(403).json({ error: 'Your account has been deactivated. Please contact cavitelakbay@gmail.com for activation.' })
+            return res.status(403).json({
+                error: 'Your account has been deactivated. Please contact cavitelakbay@gmail.com for activation.',
+                isDeactivated: true,
+                deactivationReason: user.deactivationReason || 'No reason provided',
+                deactivatedAt: user.deactivatedAt
+            })
         }
 
         const match = await bcrypt.compare(password, user.password)
 
         if (!match) {
-            return res.status(400).json({ error: "Please provide a valid credentials" })
+            return res.status(400).json({ error: "Please provide valid credentials" })
         }
 
         user.lastLogin = new Date();
@@ -575,10 +579,13 @@ const images = async (req, res) => {
     }
 }
 
-const toggleUserStatus = async (req, res) => {
 
+
+const toggleUserStatus = async (req, res) => {
     try {
         const { id } = req.params
+        const { deactivationReason } = req.body
+        const currentUserId = req.user._id
 
         if (!mongoose.Types.ObjectId.isValid(id)) {
             return res.status(404).json({ error: 'No such user' })
@@ -589,15 +596,39 @@ const toggleUserStatus = async (req, res) => {
             return res.status(404).json({ error: 'No such user' })
         }
 
+        // Toggle the active status
         user.isActive = !user.isActive
+
+        // If deactivating the user, store the reason and additional info
+        if (!user.isActive) {
+            // Validate that a reason was provided
+            if (!deactivationReason) {
+                return res.status(400).json({ error: 'Deactivation reason is required' })
+            }
+
+            user.deactivationReason = deactivationReason
+            user.deactivatedAt = new Date()
+            user.deactivatedBy = currentUserId
+        } else {
+            // If activating the user, clear the deactivation info
+            user.deactivationReason = null
+            user.deactivatedAt = null
+            user.deactivatedBy = null
+        }
+
         await user.save()
 
-        return res.status(200).json({ message: `User ${user.isActive ? 'activated' : 'deactived'}`, user })
+        return res.status(200).json({
+            message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
+            user
+        })
     } catch (error) {
         console.log(error)
         res.status(500).json({ error: 'Internal Server Error' })
     }
 }
+
+module.exports = { toggleUserStatus }
 
 module.exports = {
     getUser,

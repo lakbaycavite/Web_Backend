@@ -48,6 +48,19 @@ const userSchema = new Schema({
     isVerified: {
         type: Boolean,
         default: false
+    },
+    deactivationReason: {
+        type: String,
+        default: null
+    },
+    deactivatedAt: {
+        type: Date,
+        default: null
+    },
+    deactivatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
     }
 
 

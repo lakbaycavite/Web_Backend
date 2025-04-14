@@ -18,9 +18,14 @@ const {
     verifyResetToken
 } = require('../controller/userController')
 const { upload } = require('../middleware/fileUpload')
+const requireAuth = require('../middleware/requireAuth')
+
+
 
 
 const router = express.Router()
+
+// router.use(requireAuth)
 
 router.get('/image', images)
 
@@ -43,7 +48,7 @@ router.delete('/delete', deleteUser)
 router.post('/upload-image', upload.single('image'), uploadImage);
 
 // toggle status
-router.put('/toggle-status/:id', toggleUserStatus)
+router.put('/toggle-status/:id', requireAuth, toggleUserStatus)
 
 // user login
 router.post('/login', loginUser)
