@@ -37,6 +37,12 @@ const createEvent = async (req, res) => {
             return res.status(400).json({ error: "All fields (start, end, title, description) are required." });
         }
 
+        // check if the title already exists
+        const titleExists = await Event.findOne({ title });
+        if (titleExists) {
+            return res.status(400).json({ error: "Event title already exists." });
+        }
+
         let eventImage;
         if (req.file) {
             try {
@@ -127,6 +133,12 @@ const updateEvent = async (req, res) => {
         start,
         end
     })
+
+    const isTitleExisting = await Event.findOne({ title })
+
+    if (isTitleExisting) {
+        return res.status(400).json({ error: "Event title already exists." });
+    }
 
     if (!event) {
         return res.status(404).json({ error: 'No such event' })
