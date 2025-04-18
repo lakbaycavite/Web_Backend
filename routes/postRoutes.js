@@ -7,6 +7,7 @@ const {
         deletePost,
         updatePost,
         togglePostVisibility,
+        toggleCommentVisibility,
         addComment,
         deleteComment,
         getComments
@@ -40,5 +41,6 @@ router.put('/toggle-visibility/:id', togglePostVisibility)
 router.post('/:id/comments', addComment)
 router.get('/:id/comments', getComments)
 router.delete('/:postId/comments/:commentId', deleteComment)
+router.put('/:postId/comments/:commentId', toggleCommentVisibility)
 
 module.exports = router

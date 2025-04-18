@@ -8,6 +8,10 @@ const commentSchema = new Schema({
         ref: 'User',
         required: true
     },
+    isPublic: {
+        type: Boolean,
+        default: true,
+    },
     comment: {
         type: String,
         required: true,

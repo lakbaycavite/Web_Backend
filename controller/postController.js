@@ -194,6 +194,37 @@ const togglePostVisibility = async (req, res) => {
     }
 }
 
+const toggleCommentVisibility = async (req, res) => {
+    const { postId, commentId } = req.params
+
+    if (!mongoose.Types.ObjectId.isValid(postId) || !mongoose.Types.ObjectId.isValid(commentId)) {
+        return res.status(404).json({ error: 'Invalid IDs' })
+    }
+
+    console.log('postId:', postId)
+    console.log('commentId:', commentId)
+
+    try {
+        const post = await Post.findById(postId)
+        if (!post) {
+            return res.status(404).json({ error: 'Post not found' })
+        }
+
+        const comment = post.comments.id(commentId)
+        if (!comment) {
+            return res.status(404).json({ error: 'Comment not found' })
+        }
+
+        comment.isPublic = !comment.isPublic
+        console.log('comment:', comment)
+        await post.save()
+
+        res.status(200).json({ message: `Comment visibility toggled to ${comment.isPublic}` })
+    } catch (error) {
+        res.status(500).json({ error })
+    }
+}
+
 module.exports = {
     // createPost,
     getPosts,
@@ -201,6 +232,7 @@ module.exports = {
     deletePost,
     // updatePost,
     togglePostVisibility,
+    toggleCommentVisibility,
     addComment,
     deleteComment,
     getComments
