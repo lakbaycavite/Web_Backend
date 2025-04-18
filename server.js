@@ -9,6 +9,7 @@ const eventRoutes = require('./routes/eventRoutes')
 const userRoutes = require('./routes/userRoutes')
 const hotlineRoutes = require('./routes/hotlineRoutes')
 const dashboardRoutes = require('./routes/dashboardRoutes')
+const feedbackRoutes = require('./routes/feedbackRoutes')
 
 //express app
 const app = express()
@@ -31,9 +32,10 @@ app.use('/admin/event', eventRoutes)
 app.use('/admin/user', userRoutes)
 app.use('/admin/hotline', hotlineRoutes)
 app.use('/admin/dashboard', dashboardRoutes)
+app.use('/admin/feedback', feedbackRoutes)
 
 // connect to database
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI) 
     .then(() => {
 
         //listen for requests
