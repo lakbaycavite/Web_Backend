@@ -36,7 +36,7 @@ const getPosts = async (req, res) => {
 
         const total = await Post.countDocuments(searchFilter)
         const posts = await Post.find(searchFilter)
-            .populate("user", "username firstName lastName age gender image")
+            .populate("user", "email username firstName lastName age gender image")
             .populate("likedBy", "username firstName lastName image")
             .skip(skip).limit(limit).sort({ createdAt: -1 })
 
