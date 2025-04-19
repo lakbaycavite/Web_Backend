@@ -124,6 +124,13 @@ const updateEvent = async (req, res) => {
         return res.status(404).json({ error: 'No such event' })
     }
 
+    const isTitleExisting = await Event.findOne({ title })
+
+    if (isTitleExisting && isTitleExisting._id.toString() !== id) {
+        return res.status(400).json({ error: "Event title already exists." });
+    }
+
+
     const event = await Event.findOneAndUpdate({ _id: id }, {
         title,
         description,
@@ -133,12 +140,6 @@ const updateEvent = async (req, res) => {
         start,
         end
     })
-
-    const isTitleExisting = await Event.findOne({ title })
-
-    if (isTitleExisting && isTitleExisting._id.toString() !== id) {
-        return res.status(400).json({ error: "Event title already exists." });
-    }
 
     if (!event) {
         return res.status(404).json({ error: 'No such event' })
