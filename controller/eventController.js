@@ -4,10 +4,59 @@ const cloudinary = require('../configs/cloudinaryConfig')
 const streamifier = require('streamifier')
 
 // get all event
+// const getEvents = async (req, res) => {
+//     const events = await Event.find({}).sort({ createdAt: -1 })
+//     return res.status(200).json(events)
+// }
+
 const getEvents = async (req, res) => {
-    const events = await Event.find({}).sort({ createdAt: -1 })
-    return res.status(200).json(events)
-}
+    try {
+        // Extract date range parameters
+        const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+        const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
+        const status = req.query.status || 'all'; // 'all', 'active', or 'inactive'
+
+        // Build query filter
+        let filter = {};
+
+        // Add date range filter if dates are provided
+        if (startDate && endDate) {
+            filter.start = {
+                $gte: startDate,
+                $lte: endDate
+            };
+        }
+        // If only start date is provided
+        else if (startDate) {
+            filter.start = { $gte: startDate };
+        }
+        // If only end date is provided
+        else if (endDate) {
+            filter.start = { $lte: endDate };
+        }
+
+        // Add status filter if specified
+        if (status === 'active') {
+            filter.isActive = true;
+        } else if (status === 'inactive') {
+            filter.isActive = false;
+        }
+
+        // Get events with filters
+        const events = await Event.find(filter).sort({ start: -1 });
+
+        // Count active and inactive events
+        const totalActive = await Event.countDocuments({ ...filter, isActive: true });
+        const totalInactive = await Event.countDocuments({ ...filter, isActive: false });
+
+        res.status(200).json(
+            events
+        )
+    } catch (error) {
+        console.error("Error fetching events:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
 
 // get a single event
 const getEvent = async (req, res) => {
