@@ -23,19 +23,40 @@ const getUsers = async (req, res) => {
         const search = req.query.search || ''
         const skip = (page - 1) * limit
 
-        const searchFilter = {
-            $or: [
-                { username: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } },
-                { firstName: { $regex: search, $options: 'i' } },
-                { lastName: { $regex: search, $options: 'i' } }
-            ]
-        };
+        const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+        const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
 
-        const total = await User.countDocuments()
-        const totalActiveUsers = await User.countDocuments({ isActive: true })
-        const totalInactiveUsers = await User.countDocuments({ isActive: false })
-        const users = await User.find(searchFilter).skip(skip).limit(limit).sort({ createdAt: -1 });
+
+        let searchQuery = {};
+
+        if (search) {
+            searchQuery = {
+                $or: [
+                    { username: { $regex: search, $options: "i" } },
+                    { email: { $regex: search, $options: "i" } },
+                    { first_name: { $regex: search, $options: "i" } },
+                    { last_name: { $regex: search, $options: "i" } },
+                ]
+            };
+        }
+
+        if (startDate && endDate) {
+            searchQuery.createdAt = {
+                $gte: startDate,
+                $lte: endDate
+            };
+        }
+        else if (startDate) {
+            searchQuery.createdAt = { $gte: startDate };
+        }
+        else if (endDate) {
+            searchQuery.createdAt = { $lte: endDate };
+        }
+
+        const total = await User.countDocuments(searchQuery)
+        const totalActiveUsers = await User.countDocuments({ ...searchQuery, is_active: true });
+        const totalInactiveUsers = await User.countDocuments({ ...searchQuery, is_active: false });
+        const users = await User.find(searchQuery).skip(skip).limit(limit).sort({ createdAt: -1 });
 
         res.status(200).json({ users, total, totalActiveUsers, totalInactiveUsers, page, pages: Math.ceil(total / limit) })
     } catch (error) {
