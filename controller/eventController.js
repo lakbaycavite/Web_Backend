@@ -136,7 +136,7 @@ const updateEvent = async (req, res) => {
 
     const isTitleExisting = await Event.findOne({ title })
 
-    if (isTitleExisting) {
+    if (isTitleExisting && isTitleExisting._id.toString() !== id) {
         return res.status(400).json({ error: "Event title already exists." });
     }
 
