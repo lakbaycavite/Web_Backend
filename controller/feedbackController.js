@@ -27,16 +27,77 @@ const getFeedbacks = async (req, res) => {
         const { page = 1, limit = 10, rating, category } = req.query
         const filter = {}
 
-        if (rating) filter.rating = rating
-        if (category) filter.category = category
-
-        const feedbacks = await Feedback.find(filter).populate('user', 'email username firstName lastName age gender image role').limit(limit * 1).skip((page - 1) * limit).sort({ createdAt: -1 })
+        // Apply filters
+        if (rating) filter.rating = Number(rating)
+        if (category && category !== 'All/Other') filter.category = category
+        
+        // Fetch feedbacks with pagination and filters
+        const feedbacks = await Feedback.find(filter)
+            .populate('user', 'email username firstName lastName age gender image role')
+            .limit(limit * 1)
+            .skip((page - 1) * limit)
+            .sort({ createdAt: -1 })
+            
         if (!feedbacks) {
             return res.status(404).json({ message: "No feedbacks found" })
         }
 
-        res.status(200).json(feedbacks)
+        // Get total count
+        const totalCount = await Feedback.countDocuments(filter)
+        
+        // Get rating statistics
+        const ratingStats = await Feedback.aggregate([
+            { $match: filter },
+            { $group: { _id: "$rating", count: { $sum: 1 } } }
+        ])
+        
+        // Format rating stats
+        const ratingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+        ratingStats.forEach(stat => {
+            ratingCounts[stat._id] = stat.count
+        })
+        
+        // Get category statistics
+        const categoryStats = await Feedback.aggregate([
+            { $match: filter },
+            { $group: { _id: "$category", count: { $sum: 1 } } }
+        ])
+        
+        // Format category stats
+        const categoryCounts = {
+            'UI/UX': 0,
+            'Performance': 0,
+            'Features': 0,
+            'Bug': 0,
+            'Content': 0,
+            'All/Other': 0
+        }
+        
+        categoryStats.forEach(stat => {
+            if (categoryCounts[stat._id] !== undefined) {
+                categoryCounts[stat._id] = stat.count
+            } else {
+                categoryCounts['All/Other'] += stat.count
+            }
+        })
+
+        // Set headers for pagination
+        res.set('X-Total-Count', totalCount);
+        res.set('Access-Control-Expose-Headers', 'X-Total-Count');
+        
+        // Return data with metadata
+        res.status(200).json({
+            data: feedbacks,
+            total: totalCount,
+            page: Number(page),
+            pages: Math.ceil(totalCount / limit),
+            stats: {
+                ratings: ratingCounts,
+                categories: categoryCounts
+            }
+        })
     } catch (error) {
+        console.error("Server error:", error);
         res.status(500).json({ message: "Server error" })
     }
 }
