@@ -11,43 +11,63 @@ const streamifier = require('streamifier')
 // }
 
 const getPosts = async (req, res) => {
-
     try {
-        const page = parseInt(req.query.page) || 1
-        const limit = parseInt(req.query.limit) || 10
-        const search = req.query.search || ''
-        const skip = (page - 1) * limit
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const search = req.query.search || '';
+        const skip = (page - 1) * limit;
+
+        const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+        const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
 
         const searchFilter = {
             $or: [
                 { title: { $regex: search, $options: 'i' } },
                 { content: { $regex: search, $options: 'i' } },
-                // { user: { $regex: search, $options: 'i' } }
             ],
         };
 
+        if (startDate && endDate) {
+            searchFilter.createdAt = {
+                $gte: startDate,
+                $lte: endDate
+            };
+        }
+        else if (startDate) {
+            searchFilter.createdAt = { $gte: startDate };
+        }
+        else if (endDate) {
+            searchFilter.createdAt = { $lte: endDate };
+        }
+
         if (search) {
             const users = await User.find({ username: { $regex: search, $options: "i" } }).select("_id");
-            const userIds = users.map(user => user._id); // Extract user IDs
+            const userIds = users.map(user => user._id);
 
-            // 🔹 Include user IDs in search filter
             searchFilter.$or.push({ user: { $in: userIds } });
         }
 
-        const total = await Post.countDocuments(searchFilter)
+        const total = await Post.countDocuments(searchFilter);
         const posts = await Post.find(searchFilter)
             .populate("user", "email username firstName lastName age gender image")
             .populate("likedBy", "username firstName lastName image")
-            .skip(skip).limit(limit).sort({ createdAt: -1 })
+            .skip(skip).limit(limit).sort({ createdAt: -1 });
 
-        // console.log('LikedBy users:', posts.likedBy.map(user => user.username));
+        const totalVisible = await Post.countDocuments({ ...searchFilter, is_hidden: false });
+        const totalHidden = await Post.countDocuments({ ...searchFilter, is_hidden: true });
 
-
-        res.status(200).json({ posts, total, page, pages: Math.ceil(total / limit) })
+        res.status(200).json({
+            posts,
+            total,
+            totalVisible,
+            totalHidden,
+            page,
+            pages: Math.ceil(total / limit)
+        });
     } catch (error) {
-        res.status(500).json({ error: error.message })
+        res.status(500).json({ error: error.message });
     }
-}
+};
 
 // get a single post
 const getPost = async (req, res) => {
