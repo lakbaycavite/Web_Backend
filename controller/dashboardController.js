@@ -81,7 +81,8 @@ const dashboardDetails = async (req, res) => {
             recentEvents,
             recentHotlines,
             totalFeedbacks,
-            averageRating
+            averageRating,
+            tenRecentFeedbacks
         ] = await Promise.all([
             User.countDocuments(dateFilter),
             User.countDocuments({ ...dateFilter, isActive: true }),
@@ -124,7 +125,8 @@ const dashboardDetails = async (req, res) => {
                         averageRating: { $avg: "$rating" }
                     }
                 }
-            ]).then(result => (result.length > 0 ? result[0].averageRating : 0))
+            ]).then(result => (result.length > 0 ? result[0].averageRating : 0)),
+            Feedback.find(dateFilter).sort({ createdAt: -1 }).limit(10).populate("user", "email username firstName lastName age gender image")
         ]);
 
         return res.status(200).json({
@@ -147,6 +149,7 @@ const dashboardDetails = async (req, res) => {
             totalFeedbacks,
             averageRating,
             demographics,
+            tenRecentFeedbacks,
             dateRange: startDate && endDate ? {
                 start: startDate.toISOString(),
                 end: endDate.toISOString()
