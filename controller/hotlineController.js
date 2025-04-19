@@ -21,13 +21,14 @@ const createHotline = async (req, res) => {
 
 // get all hotline
 const getHotlines = async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || '';
+    const category = req.query.category || '';
+    const skip = (page - 1) * limit;
 
-    const page = parseInt(req.query.page) || 1
-    const limit = parseInt(req.query.limit) || 10
-    const search = req.query.search || ''
-    const skip = (page - 1) * limit
-
-    const searchFilter = {
+    // Build search filter
+    let searchFilter = {
         $or: [
             { name: { $regex: search, $options: 'i' } },
             { number: { $regex: search, $options: 'i' } },
@@ -36,14 +37,40 @@ const getHotlines = async (req, res) => {
         ]
     };
 
-    const total = await Hotline.countDocuments(searchFilter)
+    // Add category filter if provided
+    if (category && category !== 'All Categories') {
+        searchFilter.category = category;
+    }
+
+    // Get total count and filtered hotlines
+    const total = await Hotline.countDocuments(searchFilter);
     const hotlines = await Hotline.find(searchFilter)
         .skip(skip)
         .limit(limit)
-        .sort({ createdAt: -1 })  // Sort latest first
+        .sort({ createdAt: -1 });  // Sort latest first
 
-    return res.status(200).json({ hotlines, total, page, pages: Math.ceil(total / limit) })
-}
+    // Get category counts for statistics
+    const categoryCounts = {
+        'Fire': await Hotline.countDocuments({ ...searchFilter, category: 'Fire' }),
+        'Police': await Hotline.countDocuments({ ...searchFilter, category: 'Police' }),
+        'Ambulance/ Medical': await Hotline.countDocuments({ ...searchFilter, category: 'Ambulance/ Medical' }),
+        'Disaster Response': await Hotline.countDocuments({ ...searchFilter, category: 'Disaster Response' }),
+        'Others': await Hotline.countDocuments({
+            ...searchFilter,
+            category: {
+                $nin: ['Fire', 'Police', 'Ambulance/ Medical', 'Disaster Response']
+            }
+        })
+    };
+
+    return res.status(200).json({
+        hotlines,
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        categoryCounts
+    });
+};
 
 // get a single hotline
 const getHotline = async (req, res) => {
