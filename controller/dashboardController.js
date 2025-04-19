@@ -124,6 +124,12 @@ const dashboardDetails = async (req, res) => {
                         _id: null,
                         averageRating: { $avg: "$rating" }
                     }
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        averageRating: { $round: ["$averageRating", 2] }
+                    }
                 }
             ]).then(result => (result.length > 0 ? result[0].averageRating : 0)),
             Feedback.find(dateFilter).sort({ createdAt: -1 }).limit(10).populate("user", "email username firstName lastName age gender image")
