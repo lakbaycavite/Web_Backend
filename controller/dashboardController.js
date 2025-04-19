@@ -2,6 +2,7 @@ const Hotline = require('../models/hotlineModel');
 const User = require('../models/userModel');
 const Post = require('../models/postModel');
 const Event = require('../models/eventModel');
+const Feedback = require('../models/feedbackModel');
 
 const dashboardDetails = async (req, res) => {
     try {
@@ -78,7 +79,9 @@ const dashboardDetails = async (req, res) => {
             recentUsers,
             recentPosts,
             recentEvents,
-            recentHotlines
+            recentHotlines,
+            totalFeedbacks,
+            averageRating
         ] = await Promise.all([
             User.countDocuments(dateFilter),
             User.countDocuments({ ...dateFilter, isActive: true }),
@@ -111,7 +114,17 @@ const dashboardDetails = async (req, res) => {
             User.find(dateFilter).sort({ createdAt: -1 }).limit(5),
             Post.find(dateFilter).sort({ createdAt: -1 }).populate("user", "username firstName lastName age gender image").limit(5),
             Event.find(eventDateFilter).sort({ createdAt: -1 }).limit(5),
-            Hotline.find(dateFilter).sort({ createdAt: -1 }).limit(5)
+            Hotline.find(dateFilter).sort({ createdAt: -1 }).limit(5),
+            Feedback.countDocuments(dateFilter),
+            Feedback.aggregate([
+                { $match: dateFilter },
+                {
+                    $group: {
+                        _id: null,
+                        averageRating: { $avg: "$rating" }
+                    }
+                }
+            ]).then(result => (result.length > 0 ? result[0].averageRating : 0))
         ]);
 
         return res.status(200).json({
@@ -131,6 +144,8 @@ const dashboardDetails = async (req, res) => {
             recentPosts,
             recentEvents,
             recentHotlines,
+            totalFeedbacks,
+            averageRating,
             demographics,
             dateRange: startDate && endDate ? {
                 start: startDate.toISOString(),
