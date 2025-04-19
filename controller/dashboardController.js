@@ -4,25 +4,54 @@ const Post = require('../models/postModel');
 const Event = require('../models/eventModel');
 
 const dashboardDetails = async (req, res) => {
-
-    const now = new Date();
-
     try {
+        const now = new Date();
 
-        const users = await User.find({}, "age gender")
+        // Get date range from query params if provided
+        const startDate = req.query.startDate ? new Date(req.query.startDate) : null;
+        const endDate = req.query.endDate ? new Date(req.query.endDate) : null;
 
+        // Build filter object for date filtering
+        const dateFilter = {};
+        if (startDate && endDate) {
+            dateFilter.createdAt = {
+                $gte: startDate,
+                $lte: endDate
+            };
+        } else if (startDate) {
+            dateFilter.createdAt = { $gte: startDate };
+        } else if (endDate) {
+            dateFilter.createdAt = { $lte: endDate };
+        }
+
+        // Apply date filters to event queries
+        const eventDateFilter = {};
+        if (startDate && endDate) {
+            eventDateFilter.start = {
+                $gte: startDate,
+                $lte: endDate
+            };
+        } else if (startDate) {
+            eventDateFilter.start = { $gte: startDate };
+        } else if (endDate) {
+            eventDateFilter.start = { $lte: endDate };
+        }
+
+        // Fetch users with date filter if provided
+        const users = await User.find(dateFilter, "age gender");
+
+        // Calculate demographics
         const demographics = {
             gender: {},
             ageGroups: { "18-25": 0, "26-35": 0, "36-45": 0, "46+": 0 }
-        }
-
-
-
+        };
 
         users.forEach(user => {
-            const gender = user.gender ? user.gender.charAt(0).toUpperCase() + user.gender.slice(1).toLowerCase() : "Other / Unanswered";
-            demographics.gender[gender] = (demographics.gender[gender] || 0) + 1
+            const gender = user.gender ?
+                user.gender.charAt(0).toUpperCase() + user.gender.slice(1).toLowerCase()
+                : "Other / Unanswered";
 
+            demographics.gender[gender] = (demographics.gender[gender] || 0) + 1;
 
             if (user.age) {
                 if (user.age <= 25) demographics.ageGroups["18-25"]++
@@ -30,10 +59,9 @@ const dashboardDetails = async (req, res) => {
                 else if (user.age <= 45) demographics.ageGroups["36-45"]++
                 else demographics.ageGroups["46+"]++
             }
-        })
+        });
 
-        // const upcomingFiveEvents = await Event.find({ start: { $gt: now } }).sort({ start: 1 }).limit(5);
-
+        // Fetch all statistics with date filters
         const [
             totalUsers,
             totalActiveUsers,
@@ -52,28 +80,39 @@ const dashboardDetails = async (req, res) => {
             recentEvents,
             recentHotlines
         ] = await Promise.all([
-            User.countDocuments(),
-            User.countDocuments({ isActive: true }),
-            User.countDocuments({ isActive: false }),
+            User.countDocuments(dateFilter),
+            User.countDocuments({ ...dateFilter, isActive: true }),
+            User.countDocuments({ ...dateFilter, isActive: false }),
 
-            Post.countDocuments(),
-            Post.countDocuments({ is_hidden: false }),
-            Post.countDocuments({ is_hidden: true }),
+            Post.countDocuments(dateFilter),
+            Post.countDocuments({ ...dateFilter, is_hidden: false }),
+            Post.countDocuments({ ...dateFilter, is_hidden: true }),
 
-            Event.countDocuments(),
-            Event.countDocuments({ isActive: false }),
-            Event.countDocuments({ start: { $gt: now }, isActive: { $ne: false } }),
-            Event.find({ start: { $gt: now }, isActive: { $ne: false } }).sort({ start: 1 }).limit(5),
-            Event.countDocuments({ start: { $lt: now }, end: { $gt: now } }),
+            Event.countDocuments(eventDateFilter),
+            Event.countDocuments({ ...eventDateFilter, isActive: false }),
+            Event.countDocuments({
+                ...eventDateFilter,
+                start: { $gt: now },
+                isActive: { $ne: false }
+            }),
+            Event.find({
+                ...eventDateFilter,
+                start: { $gt: now },
+                isActive: { $ne: false }
+            }).sort({ start: 1 }).limit(5),
+            Event.countDocuments({
+                ...eventDateFilter,
+                start: { $lt: now },
+                end: { $gt: now }
+            }),
 
-            Hotline.countDocuments(),
+            Hotline.countDocuments(dateFilter),
 
-            User.find().sort({ createdAt: -1 }).limit(5),
-            Post.find().sort({ createdAt: -1 }).populate("user", "username firstName lastName age gender image").limit(5),
-            Event.find().sort({ createdAt: -1 }).limit(5),
-            Hotline.find().sort({ createdAt: -1 }).limit(5)
+            User.find(dateFilter).sort({ createdAt: -1 }).limit(5),
+            Post.find(dateFilter).sort({ createdAt: -1 }).populate("user", "username firstName lastName age gender image").limit(5),
+            Event.find(eventDateFilter).sort({ createdAt: -1 }).limit(5),
+            Hotline.find(dateFilter).sort({ createdAt: -1 }).limit(5)
         ]);
-
 
         return res.status(200).json({
             totalUsers,
@@ -92,12 +131,17 @@ const dashboardDetails = async (req, res) => {
             recentPosts,
             recentEvents,
             recentHotlines,
-            demographics
+            demographics,
+            dateRange: startDate && endDate ? {
+                start: startDate.toISOString(),
+                end: endDate.toISOString()
+            } : null
         });
 
     } catch (error) {
+        console.error("Server error:", error);
         return res.status(500).json({ message: "Server error" });
     }
-}
+};
 
 module.exports = { dashboardDetails };
