@@ -54,8 +54,8 @@ const getUsers = async (req, res) => {
         }
 
         const total = await User.countDocuments(searchQuery)
-        const totalActiveUsers = await User.countDocuments({ ...searchQuery, is_active: true });
-        const totalInactiveUsers = await User.countDocuments({ ...searchQuery, is_active: false });
+        const totalActiveUsers = await User.countDocuments({ ...searchQuery, isActive: true });
+        const totalInactiveUsers = await User.countDocuments({ ...searchQuery, isActive: false });
         const users = await User.find(searchQuery).skip(skip).limit(limit).sort({ createdAt: -1 });
 
         res.status(200).json({ users, total, totalActiveUsers, totalInactiveUsers, page, pages: Math.ceil(total / limit) })
