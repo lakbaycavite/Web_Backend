@@ -57,8 +57,10 @@ const getUsers = async (req, res) => {
         const totalActiveUsers = await User.countDocuments({ ...searchQuery, isActive: true });
         const totalInactiveUsers = await User.countDocuments({ ...searchQuery, isActive: false });
         const users = await User.find(searchQuery).skip(skip).limit(limit).sort({ createdAt: -1 });
+        const currentPageActiveUsers = users.filter(user => user.isActive).length;
+        const currentPageInactiveUsers = users.filter(user => !user.isActive).length;
 
-        res.status(200).json({ users, total, totalActiveUsers, totalInactiveUsers, page, pages: Math.ceil(total / limit) })
+        res.status(200).json({ users, total, totalActiveUsers, totalInactiveUsers, currentPageActiveUsers, currentPageInactiveUsers, page, pages: Math.ceil(total / limit) })
     } catch (error) {
         res.status(500).json({ error: error.message })
     }
