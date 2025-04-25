@@ -218,7 +218,8 @@ const dashboardDetails = async (req, res) => {
             recentEvents,
             recentHotlines,
             totalFeedbacks,
-            tenRecentFeedbacks
+            tenRecentFeedbacks,
+            adminUser
         ] = await Promise.all([
             User.countDocuments(dateFilter),
             User.countDocuments({ ...dateFilter, isActive: true }),
@@ -253,7 +254,8 @@ const dashboardDetails = async (req, res) => {
             Event.find(eventDateFilter).sort({ createdAt: -1 }).limit(5),
             Hotline.find(dateFilter).sort({ createdAt: -1 }).limit(5),
             Feedback.countDocuments(dateFilter),
-            Feedback.find(dateFilter).sort({ createdAt: -1 }).limit(10).populate("user", "email username firstName lastName age gender image")
+            Feedback.find(dateFilter).sort({ createdAt: -1 }).limit(10).populate("user", "email username firstName lastName age gender image"),
+            User.findOne({ role: "admin" }, { username: 1, firstName: 1, lastName: 1, email: 1, image: 1 })
         ]);
 
         return res.status(200).json({
@@ -280,7 +282,8 @@ const dashboardDetails = async (req, res) => {
             dateRange: startDate && endDate ? {
                 start: startDate.toISOString(),
                 end: endDate.toISOString()
-            } : null
+            } : null,
+            adminUser
         });
 
     } catch (error) {
