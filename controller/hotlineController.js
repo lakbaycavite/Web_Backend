@@ -1,5 +1,6 @@
 const Hotline = require('../models/hotlineModel')
 const mongoose = require('mongoose')
+const User = require('../models/userModel')
 
 // create a hotline
 const createHotline = async (req, res) => {
@@ -63,12 +64,15 @@ const getHotlines = async (req, res) => {
         })
     };
 
+    const adminUser = await User.findOne({ role: 'admin' });
+
     return res.status(200).json({
         hotlines,
         total,
         page,
         pages: Math.ceil(total / limit),
-        categoryCounts
+        categoryCounts,
+        adminUser
     });
 };
 
@@ -136,5 +140,5 @@ module.exports = {
     getHotlines,
     getHotline,
     updateHotline,
-    deleteHotline
+    deleteHotline,
 }

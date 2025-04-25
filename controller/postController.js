@@ -56,13 +56,16 @@ const getPosts = async (req, res) => {
         const totalVisible = await Post.countDocuments({ ...searchFilter, is_hidden: false });
         const totalHidden = await Post.countDocuments({ ...searchFilter, is_hidden: true });
 
+        const adminUser = await User.findOne({ role: 'admin' });
+
         res.status(200).json({
             posts,
             total,
             totalVisible,
             totalHidden,
             page,
-            pages: Math.ceil(total / limit)
+            pages: Math.ceil(total / limit),
+            adminUser
         });
     } catch (error) {
         res.status(500).json({ error: error.message });

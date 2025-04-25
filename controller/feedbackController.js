@@ -1,4 +1,5 @@
 const Feedback = require('../models/feedbackModel')
+const User = require('../models/userModel')
 const mongoose = require('mongoose')
 
 const createFeedback = async (req, res) => {
@@ -30,39 +31,39 @@ const getFeedbacks = async (req, res) => {
         // Apply filters
         if (rating) filter.rating = Number(rating)
         if (category && category !== 'All/Other') filter.category = category
-        
+
         // Fetch feedbacks with pagination and filters
         const feedbacks = await Feedback.find(filter)
             .populate('user', 'email username firstName lastName age gender image role')
             .limit(limit * 1)
             .skip((page - 1) * limit)
             .sort({ createdAt: -1 })
-            
+
         if (!feedbacks) {
             return res.status(404).json({ message: "No feedbacks found" })
         }
 
         // Get total count
         const totalCount = await Feedback.countDocuments(filter)
-        
+
         // Get rating statistics
         const ratingStats = await Feedback.aggregate([
             { $match: filter },
             { $group: { _id: "$rating", count: { $sum: 1 } } }
         ])
-        
+
         // Format rating stats
         const ratingCounts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
         ratingStats.forEach(stat => {
             ratingCounts[stat._id] = stat.count
         })
-        
+
         // Get category statistics
         const categoryStats = await Feedback.aggregate([
             { $match: filter },
             { $group: { _id: "$category", count: { $sum: 1 } } }
         ])
-        
+
         // Format category stats
         const categoryCounts = {
             'UI/UX': 0,
@@ -72,7 +73,7 @@ const getFeedbacks = async (req, res) => {
             'Content': 0,
             'All/Other': 0
         }
-        
+
         categoryStats.forEach(stat => {
             if (categoryCounts[stat._id] !== undefined) {
                 categoryCounts[stat._id] = stat.count
@@ -84,7 +85,9 @@ const getFeedbacks = async (req, res) => {
         // Set headers for pagination
         res.set('X-Total-Count', totalCount);
         res.set('Access-Control-Expose-Headers', 'X-Total-Count');
-        
+
+        const adminUser = await User.findOne({ role: 'admin' })
+
         // Return data with metadata
         res.status(200).json({
             data: feedbacks,
@@ -94,7 +97,8 @@ const getFeedbacks = async (req, res) => {
             stats: {
                 ratings: ratingCounts,
                 categories: categoryCounts
-            }
+            },
+            adminUser
         })
     } catch (error) {
         console.error("Server error:", error);

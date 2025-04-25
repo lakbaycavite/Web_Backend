@@ -3,6 +3,7 @@ const mongoose = require('mongoose')
 const cloudinary = require('../configs/cloudinaryConfig')
 const streamifier = require('streamifier')
 const axios = require('axios')
+const User = require('../models/userModel')
 
 // get all event
 // const getEvents = async (req, res) => {
@@ -50,9 +51,12 @@ const getEvents = async (req, res) => {
         const totalActive = await Event.countDocuments({ ...filter, isActive: true });
         const totalInactive = await Event.countDocuments({ ...filter, isActive: false });
 
-        res.status(200).json(
-            events
-        )
+        const adminUser = await User.findOne({ role: 'admin' });
+
+        res.status(200).json({
+            events,
+            adminUser
+        })
     } catch (error) {
         console.error("Error fetching events:", error);
         res.status(500).json({ error: error.message });
