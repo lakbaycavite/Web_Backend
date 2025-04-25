@@ -25,12 +25,24 @@ const createFeedback = async (req, res) => {
 
 const getFeedbacks = async (req, res) => {
     try {
-        const { page = 1, limit = 10, rating, category } = req.query
+        const { page = 1, limit = 10, rating, category, startDate, endDate } = req.query
         const filter = {}
 
         // Apply filters
         if (rating) filter.rating = Number(rating)
         if (category && category !== 'All/Other') filter.category = category
+
+        // Add date range filter
+        if (startDate || endDate) {
+            filter.createdAt = {}
+            if (startDate) filter.createdAt.$gte = new Date(startDate)
+            if (endDate) {
+                // Set endDate to end of day
+                const endOfDay = new Date(endDate)
+                endOfDay.setHours(23, 59, 59, 999)
+                filter.createdAt.$lte = endOfDay
+            }
+        }
 
         // Fetch feedbacks with pagination and filters
         const feedbacks = await Feedback.find(filter)
@@ -98,7 +110,11 @@ const getFeedbacks = async (req, res) => {
                 ratings: ratingCounts,
                 categories: categoryCounts
             },
-            adminUser
+            adminUser,
+            dateRange: {  // Include date range in response
+                startDate: startDate ? new Date(startDate).toISOString() : null,
+                endDate: endDate ? new Date(endDate).toISOString() : null
+            }
         })
     } catch (error) {
         console.error("Server error:", error);
