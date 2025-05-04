@@ -35,7 +35,7 @@ app.use('/admin/dashboard', dashboardRoutes)
 app.use('/admin/feedback', feedbackRoutes)
 
 // connect to database
-mongoose.connect(process.env.MONGO_URI) 
+mongoose.connect(process.env.MONGO_URI)
     .then(() => {
 
         //listen for requests
@@ -48,3 +48,4 @@ mongoose.connect(process.env.MONGO_URI)
     })
 
 
+module.exports = app
