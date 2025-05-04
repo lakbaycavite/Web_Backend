@@ -22,8 +22,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(cors({
     origin: process.env.FRONTEND_URL,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
 }))
+
 
 // - gives a function of req.body
 //routes
